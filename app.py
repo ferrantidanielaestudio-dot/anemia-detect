@@ -113,6 +113,15 @@ async def predict_image(file: UploadFile = File(...)):
             detail="La imagen no corresponde a un ojo humano. Capture nuevamente una imagen de la conjuntiva."
         )
 
+    # 3b. The eye must be open: a closed eyelid hides the conjunctiva
+    # entirely, so the model would be classifying skin/eyelash texture
+    # instead of the actual tissue it was trained on.
+    if not eye_result.eyes_open:
+        raise HTTPException(
+            status_code=400,
+            detail="El ojo aparece cerrado en la imagen. Abra bien el ojo y capture nuevamente la conjuntiva."
+        )
+
     # 4. Quality checks and warnings
     warnings_list = []
     width, height = image.size
