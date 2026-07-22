@@ -43,7 +43,12 @@ if _eye_cascade.empty() or _face_cascade.empty():
 # module-level constants (not magic numbers buried in the function) so
 # they're easy to retune later against real photos.
 MIN_EYE_WIDTH_RATIO = 0.15    # eye bbox width / image width -> "is this a close-up?"
-MIN_SPACE_BELOW_PUPIL_RATIO = 0.28  # (eye bbox bottom - pupil bottom) / eye bbox height
+# Haar's eye bounding box is loosely padded (often extends into
+# under-eye skin), so it is not a reliable ruler on its own. The pupil
+# radius, coming straight from the Hough fit, is: require the visible
+# room below the pupil to be at least this many pupil-radii before it
+# hits the box edge.
+MIN_SPACE_BELOW_PUPIL_IN_RADII = 1.8
 
 
 @dataclass
@@ -128,9 +133,19 @@ def _assess_eye_region(
     _cx, cy, r = pupil
     pupil_bottom = cy + r
 
-    is_close_up = (w / image_width) >= MIN_EYE_WIDTH_RATIO
-    space_below_ratio = (h - pupil_bottom) / h if h > 0 else 0.0
-    has_room_below = space_below_ratio >= MIN_SPACE_BELOW_PUPIL_RATIO
+    eye_width_ratio = w / image_width
+    is_close_up = eye_width_ratio >= MIN_EYE_WIDTH_RATIO
+    space_below_px = h - pupil_bottom
+    space_below_radii = (space_below_px / r) if r > 0 else 0.0
+    has_room_below = r > 0 and space_below_radii >= MIN_SPACE_BELOW_PUPIL_IN_RADII
+
+    # TEMP DEBUG: remove once thresholds are calibrated against real photos.
+    print(
+        f"[conjunctiva-debug] eye_box=({x},{y},{w},{h}) pupil_r={r} "
+        f"eye_width_ratio={eye_width_ratio:.3f} (min {MIN_EYE_WIDTH_RATIO}) "
+        f"space_below_radii={space_below_radii:.2f} (min {MIN_SPACE_BELOW_PUPIL_IN_RADII}) "
+        f"-> is_close_up={is_close_up} has_room_below={has_room_below}"
+    )
 
     return True, (is_close_up and has_room_below)
 
