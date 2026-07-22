@@ -122,6 +122,16 @@ async def predict_image(file: UploadFile = File(...)):
             detail="El ojo aparece cerrado en la imagen. Abra bien el ojo y capture nuevamente la conjuntiva."
         )
 
+    # 3c. The model was trained specifically on the lower palpebral
+    # conjunctiva. A photo showing only the upper eye/iris, or taken from
+    # too far away (whole face), doesn't expose that tissue even though
+    # the eye itself is open — reject those before they reach the model.
+    if not eye_result.conjunctiva_visible:
+        raise HTTPException(
+            status_code=400,
+            detail="No se observa la conjuntiva inferior en la imagen. Tire suavemente del párpado inferior hacia abajo y capture de cerca esa zona."
+        )
+
     # 4. Quality checks and warnings
     warnings_list = []
     width, height = image.size
