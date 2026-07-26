@@ -137,6 +137,11 @@ h1,h2,h3{margin:0 0 8px}
   transition:transform .08s linear;
 }
 .pip{border-radius:50%;background:#263238;opacity:0;align-self:center;justify-self:center;width:60%;height:60%}
+.status-bar{flex-basis:100%;text-align:center;margin-top:6px;min-height:36px}
+#statusEvent{display:block;font-size:14px;font-weight:700;color:#2e5c34}
+#statusTurn{display:block;font-size:12.5px;font-weight:700;color:#e65100;margin-top:2px}
+.status-pop{animation:statusPop .3s ease}
+@keyframes statusPop{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 .pip.on{opacity:1}
 
 /* ---------- board ---------- */
@@ -271,6 +276,10 @@ h1,h2,h3{margin:0 0 8px}
         <span class="pip" id="p6"></span><span class="pip" id="p7"></span><span class="pip" id="p8"></span>
       </div>
       <button class="btn btn-gold" id="btnRoll">🎲 Tirar dado</button>
+    </div>
+    <div class="status-bar">
+      <span id="statusEvent">¡Bienvenidos! Tirá el dado para empezar la carrera.</span>
+      <span id="statusTurn"></span>
     </div>
   </div>
   <div class="board-scroll">
@@ -766,8 +775,23 @@ function rollDice(){
 $('btnRoll').addEventListener('click',rollDice);
 
 /* ================= turn / movement logic ================= */
+const CARD_LABELS={red:'Mímica 🎬',white:'Trivia ❓',blue:'Canción 🎵'};
+
+function setStatusEvent(msg){
+  const el=$('statusEvent');
+  el.classList.remove('status-pop');
+  void el.offsetWidth;
+  el.textContent=msg;
+  el.classList.add('status-pop');
+}
+function setStatusTurn(msg){
+  $('statusTurn').textContent=msg;
+}
+
 async function movePlayer(player,steps){
   state.animating=true;
+  updateHud();
+  setStatusEvent(player.name+' sacó un '+steps+' 🎲');
   const finish=state.boardSize;
   const target=player.pos+steps;
   let path=[];
@@ -786,12 +810,16 @@ async function movePlayer(player,steps){
   layoutTokens();
   if(finalPos===finish){
     state.animating=false;
+    setStatusEvent(player.name+' llegó justo a la meta 🏆');
     triggerVictory(player);
     return;
   }
   const type=state.cellTypes[finalPos-1];
   if(type==='red'||type==='white'||type==='blue'){
+    setStatusEvent(player.name+' avanzó a la casilla '+finalPos+' y sacó una carta de '+CARD_LABELS[type]+'.');
     await openCard(type);
+  } else {
+    setStatusEvent(player.name+' avanzó a la casilla '+finalPos+'. Casilla libre, no pasa nada más.');
   }
   state.animating=false;
   nextTurn();
@@ -814,6 +842,7 @@ async function animatePath(player,path,finish){
 function nextTurn(){
   state.current=(state.current+1)%state.players.length;
   updateHud();
+  setStatusTurn('👉 Turno de '+state.players[state.current].name);
 }
 
 function updateHud(){
@@ -1005,6 +1034,8 @@ $('btnStartGame').addEventListener('click',()=>{
   showScreen('game');
   buildTokens();
   updateHud();
+  setStatusEvent('¡Que comience la carrera! 🍉');
+  setStatusTurn('👉 Turno de '+state.players[0].name);
 });
 
 /* ================= victory screen buttons ================= */
@@ -1014,6 +1045,8 @@ $('btnPlayAgain').addEventListener('click',()=>{
   resetPositions();
   showScreen('game');
   updateHud();
+  setStatusEvent('¡Nueva carrera! Todos vuelven al inicio. 🍉');
+  setStatusTurn('👉 Turno de '+state.players[0].name);
   requestAnimationFrame(layoutTokens);
 });
 
