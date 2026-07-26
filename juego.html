@@ -605,15 +605,20 @@ function stopVictoryFx(){
 
 /* ================= board ================= */
 function buildCellTypes(n){
-  const types=[];
-  for(let i=0;i<n;i++){
-    if(i===0){ types.push('start'); continue; }
-    if(i===n-1){ types.push('meta'); continue; }
-    const m=i%6;
-    if(m===1) types.push('red');
-    else if(m===3) types.push('white');
-    else if(m===5) types.push('blue');
-    else types.push('normal');
+  const types=new Array(n);
+  types[0]='start';
+  types[n-1]='meta';
+  const interiorCount=n-2;
+  const emptyBudget=8;
+  const emptyPositions=new Set();
+  for(let k=0;k<emptyBudget;k++){
+    const pos=Math.round((k+0.5)*interiorCount/emptyBudget);
+    emptyPositions.add(Math.min(interiorCount-1,pos));
+  }
+  const cycle=['red','white','blue'];
+  let cycleIdx=0;
+  for(let idx=0;idx<interiorCount;idx++){
+    types[idx+1] = emptyPositions.has(idx) ? 'normal' : cycle[cycleIdx++ % cycle.length];
   }
   return types;
 }
